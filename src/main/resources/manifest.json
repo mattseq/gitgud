@@ -1,0 +1,22 @@
+{
+    "Group": "mattseq",
+    "Name": "gitgud",
+    "Version": "0.0.2",
+    "Description": "An example plugin for HyTale!",
+    "Authors": [
+        {
+            "Name": "mattseq"
+        }
+    ],
+    "Website": "github.com/mattseq",
+    "ServerVersion": "*",
+    "Dependencies": {
+        
+    },
+    "OptionalDependencies": {
+        
+    },
+    "DisabledByDefault": false,
+    "Main": "org.mattseq.plugin.ExamplePlugin",
+    "IncludesAssetPack": true
+}
