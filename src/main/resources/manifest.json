@@ -17,6 +17,6 @@
         
     },
     "DisabledByDefault": false,
-    "Main": "org.mattseq.plugin.ExamplePlugin",
+    "Main": "org.mattseq.plugin.GitGudPlugin",
     "IncludesAssetPack": true
 }
