@@ -3,9 +3,9 @@ package org.mattseq.plugin;
 import com.hypixel.hytale.math.vector.Vector3i;
 
 public class BlockChange {
-    private Vector3i position;
-    private String newBlockId;
-    private final long timestamp;
+    public Vector3i position;
+    public String newBlockId;
+    public final long timestamp;
 
     public BlockChange(Vector3i position, String newBlockId) {
         this.position = position;

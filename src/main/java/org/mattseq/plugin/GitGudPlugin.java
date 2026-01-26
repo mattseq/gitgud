@@ -24,6 +24,7 @@ public class GitGudPlugin extends JavaPlugin {
         LOGGER.atInfo().log("Setting up plugin " + this.getName());
         Repository.initialize();
         this.getEntityStoreRegistry().registerSystem(new BlockBreakTrackerSystem());
+        this.getEntityStoreRegistry().registerSystem(new BlockPlaceTrackerSystem());
         this.getCommandRegistry().registerCommand(new CommitCommand());
     }
 }

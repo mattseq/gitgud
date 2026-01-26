@@ -19,8 +19,11 @@ public class BlockBreakTrackerSystem extends EntityEventSystem<EntityStore, Brea
 
     @Override
     public void handle(int i, @Nonnull ArchetypeChunk<EntityStore> archetypeChunk, @Nonnull Store<EntityStore> store, @Nonnull CommandBuffer<EntityStore> commandBuffer, @Nonnull BreakBlockEvent breakBlockEvent) {
+        if (breakBlockEvent.getBlockType().getId().equals("Empty")) {
+            return;
+        }
         Repository.addBlockChange(new BlockChange(breakBlockEvent.getTargetBlock(), "Empty"));
-        GitGudPlugin.LOGGER.atInfo().log("Block broken at " + breakBlockEvent.getTargetBlock());
+        GitGudPlugin.LOGGER.atInfo().log("Block broken at " + breakBlockEvent.getTargetBlock() + " with ID " + breakBlockEvent.getBlockType().getId());
     }
 
     @Nullable
