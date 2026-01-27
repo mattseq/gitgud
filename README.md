@@ -1,101 +1,63 @@
-# 🛠️ Hytale Plugin Template
+# GitGud — Lightweight in-game world versioning for Hytale
 
-Welcome to the **Hytale Plugin Template**! This project is a pre-configured foundation for building **Java Plugins**. It streamlines the development process by handling classpath setup, server execution, and asset bundling.
+A simple server plugin that tracks block placements and breaks, lets builders save changes as local commits, and easily revert or stash changes. Designed for small teams and creative servers to recover mistakes without external tools.
 
-> **⚠️ Early Access Warning**
-> Hytale is currently in Early Access. Features, APIs, and this template are subject to frequent changes. Please ensure you are using the latest version of the template for the best experience.
+## Features
 
----
+- Track block changes (place / break) and store them as commits in `./gitgud/commits`.
+- Save a commit with a message, revert the latest commit to restore previous blocks.
+- Automatically stash and unstash uncommitted changes to preserve changes after server restarts.
+- Rollback unsaved changes.
+- Lightweight JSON storage for commits
 
-## 📋 Prerequisites
+## Installation
 
-Before you begin, ensure your environment is ready:
+1. Download the JAR and place it in the `Mods` directory of your Hytale server.
+2. Start the server. The plugin will create a `./gitgud` folder in the server working directory with `commits` and `stash` subfolders.
 
-* **Hytale Launcher**: Installed and updated.
-* **Java 25 SDK**: Required for modern Hytale development.
-* **IntelliJ IDEA**: (Community or Ultimate) Recommended for full feature support.
+## Quick usage
 
----
+1. Make block changes in the world (place/break blocks).
+2. Run the commit command with a message to save changes as a JSON commit.
+3. Revert the latest commit to restore previous blocks.
 
-## 🚀 Quick Start Installation
+## Commands
 
-### 1. Initial Setup (Before Importing)
+Below are example in-game commands and how to use them.
 
-To avoid IDE caching issues, configure these files **before** you open the project in IntelliJ:
+- `/git status`
+    - Show whether there are uncommitted block changes, and whether a stash exists.
 
-* **`settings.gradle`**: Set your unique project name.
-```gradle
-rootProject.name = 'MyAwesomePlugin'
+- `/git commit "<message>"`
+  - Create a new commit from the current uncommitted block changes.
+  - Example: `/git commit "cathedral roof"`
 
-```
+- `/git revert`
+  - Revert the previous commit, restoring blocks to their previous state.
+  - Recommended to run `/git rollback` first to clear uncommitted changes.
 
+- `/git rollback`
+  - Roll back the current uncommitted changes in memory (rollback to last committed state).
 
-* **`gradle.properties`**: Set your `maven_group` (e.g., `com.yourname`) and starting version.
-* **`src/main/resources/manifest.json`**: Update your plugin metadata.
-* **CRITICAL:** Ensure the `"Main"` property points exactly to your entry-point class.
+Notes:
+- If a command is missing or named differently in your build, check `/git help` or the plugin documentation bundled with the JAR.
+- Permissions: only server operators can use these commands by default.
 
+## Compatibility and Improvements
 
+- Commits are stored as readable JSON in `./gitgud`; compression and advanced history tools are TODO.
+- Not all elements are tracked (e.g., fluids, entities); focus is on block placements and breaks for now.
+- Future improvements may include better diffing, multi-world support, a GUI interface, and memory and storage optimizations.
 
-### 2. Importing the Project
+## Troubleshooting
 
-1. Open IntelliJ IDEA and select **Open**.
-2. Navigate to the template folder and click **OK**.
-3. Wait for the Gradle sync to finish. This will automatically download dependencies, create a `./run` folder, and generate the **HytaleServer** run configuration.
+- If the plugin does not create the `./gitgud` folder, ensure the server process has write permission to its working directory.
+- If block changes are not being recorded, check server logs for plugin initialization messages and ensure the plugin is loaded.
 
-### 3. Authenticating your Test Server
+## Contributing
 
-You **must** authenticate your local server to connect to it:
-
-1. Launch the **HytaleServer** configuration in IDEA.
-2. In the terminal, run: `auth login device`.
-3. Follow the printed URL to log in via your Hytale account.
-4. Once verified, run: `auth persistence Encrypted`.
-
----
-
-## 🎮 Developing & Testing
-
-### Running the Server
-
-If you do not see the **HytaleServer** run configuration in the top-right dropdown, click "Edit Configurations..." to unhide it. Press the **Green Play Button** to start, or the **Bug Icon** to start in Debug Mode to enable breakpoints.
-
-### Verifying the Setup
-
-1. Launch your standard Hytale Client.
-2. Connect to `Local Server` (127.0.0.1).
-3. Type `/test` in-game. If it returns your plugin version, everything is working!
-
-### Bundling Assets
-
-You can include models and textures by placing them in `src/main/resources/Common/` or `src/main/resources/Server/`. These are editable in real-time using the in-game **Asset Editor**.
+Contributions and bug reports are welcome. Please open issues and pull requests on the project repository.
 
 ---
 
-## 📦 Building your Plugin
-
-To create a shareable `.jar` file for distribution:
-
-1. Open the **Gradle Tab** on the right side of IDEA.
-2. Navigate to `Tasks` -> `build` -> `build`.
-3. Your compiled plugin will be in: `build/libs/your-plugin-name-1.0.0.jar`.
-
-To install it manually, drop the JAR into `%appdata%/Hytale/UserData/Mods/`.
-
----
-
-## 📚 Advanced Documentation
-
-For detailed guides on commands, event listeners, and professional patterns, visit our full documentation:
-👉 **[Hytale Modding Documentation](https://britakee-studios.gitbook.io/hytale-modding-documentation)**
-
----
-
-## 🆘 Troubleshooting
-
-* **Sync Fails**: Check that your Project SDK is set to **Java 25** via `File > Project Structure`.
-* **Cannot Connect**: Ensure you ran the `auth` commands in the server console.
-* **Plugin Not Loading**: Double-check your `manifest.json` for typos in the `"Main"` class path.
-
----
-
-**Need Help?** Visit our full guide here: **[Hytale Modding Documentation](https://britakee-studios.gitbook.io/hytale-modding-documentation)**
+Lightweight recovery for accidental edits and iterative building — easy to use, easy to restore.

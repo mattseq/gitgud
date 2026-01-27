@@ -9,7 +9,7 @@ import javax.annotation.Nonnull;
 
 public class RevertCommand extends CommandBase {
     public RevertCommand() {
-        super("git-revert", "Reverts the world to the previous commit");
+        super("revert", "Reverts the world to the previous commit");
     }
 
     @Override

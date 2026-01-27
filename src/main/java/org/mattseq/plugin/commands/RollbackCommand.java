@@ -10,7 +10,7 @@ import javax.annotation.Nonnull;
 public class RollbackCommand extends CommandBase {
 
     public RollbackCommand() {
-        super("git-rollback", "Rolls back the world to the last commit");
+        super("rollback", "Rolls back the world to the last commit");
     }
 
     @Override

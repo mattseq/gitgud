@@ -9,7 +9,7 @@ import javax.annotation.Nonnull;
 
 public class StatusCommand extends CommandBase {
     public StatusCommand() {
-        super("git-status", "Shows the current status of the repository");
+        super("status", "Shows the current status of the repository");
     }
 
     @Override

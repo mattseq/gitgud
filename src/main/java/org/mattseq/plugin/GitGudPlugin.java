@@ -3,10 +3,7 @@ package org.mattseq.plugin;
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
-import org.mattseq.plugin.commands.CommitCommand;
-import org.mattseq.plugin.commands.RevertCommand;
-import org.mattseq.plugin.commands.RollbackCommand;
-import org.mattseq.plugin.commands.StatusCommand;
+import org.mattseq.plugin.commands.*;
 import org.mattseq.plugin.trackers.BlockBreakTrackerSystem;
 import org.mattseq.plugin.trackers.BlockPlaceTrackerSystem;
 
@@ -32,10 +29,7 @@ public class GitGudPlugin extends JavaPlugin {
         Repository.unstashBlockChanges();
         this.getEntityStoreRegistry().registerSystem(new BlockBreakTrackerSystem());
         this.getEntityStoreRegistry().registerSystem(new BlockPlaceTrackerSystem());
-        this.getCommandRegistry().registerCommand(new CommitCommand());
-        this.getCommandRegistry().registerCommand(new RollbackCommand());
-        this.getCommandRegistry().registerCommand(new RevertCommand());
-        this.getCommandRegistry().registerCommand(new StatusCommand());
+        this.getCommandRegistry().registerCommand(new GitCommand());
     }
 
     @Override

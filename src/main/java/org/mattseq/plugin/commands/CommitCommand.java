@@ -12,7 +12,7 @@ import javax.annotation.Nonnull;
 public class CommitCommand extends CommandBase {
     private final RequiredArg<String> messageArg;
     public CommitCommand() {
-        super("git-commit", "Commits changes to the repository");
+        super("commit", "Commits changes to the repository");
         this.messageArg = this.withRequiredArg("message", "The commit message",ArgTypes.STRING);
     }
 

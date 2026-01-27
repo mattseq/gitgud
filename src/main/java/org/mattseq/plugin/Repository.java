@@ -14,7 +14,7 @@ import java.util.List;
 public class Repository {
     private static final Path REPO_PATH = Path.of(".gitgud");
     private static final Path COMMITS_PATH = REPO_PATH.resolve("commits");
-    // TODO: dont use a separate stash folder, only one stash file
+    // TODO: automatic stashing to prevent memory overload
     private static final Path STASH_PATH = REPO_PATH.resolve("stash");
 
     private static final ArrayList<BlockChange> blockChanges = new ArrayList<>();
