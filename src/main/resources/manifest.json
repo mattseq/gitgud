@@ -1,8 +1,8 @@
 {
     "Group": "mattseq",
     "Name": "gitgud",
-    "Version": "0.0.2",
-    "Description": "An example plugin for HyTale!",
+    "Version": "1.0.0",
+    "Description": "A Git mod for Hytale",
     "Authors": [
         {
             "Name": "mattseq"
@@ -17,6 +17,6 @@
         
     },
     "DisabledByDefault": false,
-    "Main": "org.mattseq.plugin.GitGudPlugin",
+    "Main": "org.mattseq.gitgud.GitGudPlugin",
     "IncludesAssetPack": true
 }

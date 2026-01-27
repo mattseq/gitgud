@@ -1,11 +1,11 @@
-package org.mattseq.plugin;
+package org.mattseq.gitgud;
 
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
-import org.mattseq.plugin.commands.*;
-import org.mattseq.plugin.trackers.BlockBreakTrackerSystem;
-import org.mattseq.plugin.trackers.BlockPlaceTrackerSystem;
+import org.mattseq.gitgud.commands.*;
+import org.mattseq.gitgud.trackers.BlockBreakTrackerSystem;
+import org.mattseq.gitgud.trackers.BlockPlaceTrackerSystem;
 
 import javax.annotation.Nonnull;
 

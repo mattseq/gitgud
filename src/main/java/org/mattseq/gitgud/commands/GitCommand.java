@@ -1,4 +1,4 @@
-package org.mattseq.plugin.commands;
+package org.mattseq.gitgud.commands;
 
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;

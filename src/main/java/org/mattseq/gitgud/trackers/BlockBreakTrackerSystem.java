@@ -1,4 +1,4 @@
-package org.mattseq.plugin.trackers;
+package org.mattseq.gitgud.trackers;
 
 import com.hypixel.hytale.component.Archetype;
 import com.hypixel.hytale.component.ArchetypeChunk;
@@ -8,9 +8,9 @@ import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.EntityEventSystem;
 import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
-import org.mattseq.plugin.BlockChange;
-import org.mattseq.plugin.GitGudPlugin;
-import org.mattseq.plugin.Repository;
+import org.mattseq.gitgud.BlockChange;
+import org.mattseq.gitgud.GitGudPlugin;
+import org.mattseq.gitgud.Repository;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

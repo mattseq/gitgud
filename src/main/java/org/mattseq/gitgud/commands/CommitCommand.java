@@ -1,11 +1,11 @@
-package org.mattseq.plugin.commands;
+package org.mattseq.gitgud.commands;
 
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
-import org.mattseq.plugin.Repository;
+import org.mattseq.gitgud.Repository;
 
 import javax.annotation.Nonnull;
 
