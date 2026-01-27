@@ -1,4 +1,4 @@
-package org.mattseq.plugin;
+package org.mattseq.plugin.trackers;
 
 import com.hypixel.hytale.component.Archetype;
 import com.hypixel.hytale.component.ArchetypeChunk;
@@ -8,12 +8,15 @@ import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.EntityEventSystem;
 import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import org.mattseq.plugin.BlockChange;
+import org.mattseq.plugin.GitGudPlugin;
+import org.mattseq.plugin.Repository;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class BlockBreakTrackerSystem extends EntityEventSystem<EntityStore, BreakBlockEvent> {
-    protected BlockBreakTrackerSystem() {
+    public BlockBreakTrackerSystem() {
         super(BreakBlockEvent.class);
     }
 
@@ -22,7 +25,7 @@ public class BlockBreakTrackerSystem extends EntityEventSystem<EntityStore, Brea
         if (breakBlockEvent.getBlockType().getId().equals("Empty")) {
             return;
         }
-        Repository.addBlockChange(new BlockChange(breakBlockEvent.getTargetBlock(), "Empty"));
+        Repository.addBlockChange(new BlockChange(breakBlockEvent.getTargetBlock(), breakBlockEvent.getBlockType().getId(), "Empty"));
         GitGudPlugin.LOGGER.atInfo().log("Block broken at " + breakBlockEvent.getTargetBlock() + " with ID " + breakBlockEvent.getBlockType().getId());
     }
 
