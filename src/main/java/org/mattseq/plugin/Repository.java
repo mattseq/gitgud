@@ -14,6 +14,7 @@ import java.util.List;
 public class Repository {
     private static final Path REPO_PATH = Path.of(".gitgud");
     private static final Path COMMITS_PATH = REPO_PATH.resolve("commits");
+    // TODO: dont use a separate stash folder, only one stash file
     private static final Path STASH_PATH = REPO_PATH.resolve("stash");
 
     private static final ArrayList<BlockChange> blockChanges = new ArrayList<>();
@@ -74,6 +75,7 @@ public class Repository {
             changesToSave.sort(Comparator.comparingLong(a -> a.timestamp));
 
             String commitJson = serializeCommitJson(new Commit(message, changesToSave, timestamp));
+            // TODO: compress commit files
             Files.write(commitFile, commitJson.getBytes());
         } catch (IOException e) {
             GitGudPlugin.LOGGER.atWarning().log("Failed to save commit: " + e.getMessage());
@@ -198,4 +200,6 @@ public class Repository {
         Gson gson = new Gson();
         return gson.fromJson(json, Commit.class);
     }
+
+    // TODO: add methods to list commits, get commit by name, etc.
 }
