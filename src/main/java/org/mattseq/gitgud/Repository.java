@@ -4,12 +4,16 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hypixel.hytale.server.core.universe.Universe;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public class Repository {
     private static final Path REPO_PATH = Path.of(".gitgud");
@@ -63,7 +67,7 @@ public class Repository {
     public static void saveCommit(String message) {
         long timestamp = System.currentTimeMillis();
 
-        Path commitFile = COMMITS_PATH.resolve("commit_" + timestamp + ".json");
+        Path commitFile = COMMITS_PATH.resolve("commit_" + timestamp + ".json.gz");
 
         ArrayList<BlockChange> changesToSave = getBlockChanges();
         if (changesToSave.isEmpty()) {
@@ -75,8 +79,8 @@ public class Repository {
             changesToSave.sort(Comparator.comparingLong(a -> a.timestamp));
 
             String commitJson = serializeCommitJson(new Commit(message, changesToSave, timestamp));
-            // TODO: compress commit files
-            Files.write(commitFile, commitJson.getBytes());
+            byte[] compressedData = gzipCompress(commitJson.getBytes());
+            Files.write(commitFile, compressedData);
         } catch (IOException e) {
             GitGudPlugin.LOGGER.atWarning().log("Failed to save commit: " + e.getMessage());
         }
@@ -101,15 +105,16 @@ public class Repository {
             Path latestCommitFile = Files.list(COMMITS_PATH)
                     .filter(path -> path.getFileName().toString().startsWith("commit_"))
                     .max((p1, p2) -> {
-                        long t1 = Long.parseLong(p1.getFileName().toString().split("_")[1].replace(".json", ""));
-                        long t2 = Long.parseLong(p2.getFileName().toString().split("_")[1].replace(".json", ""));
+                        long t1 = Long.parseLong(p1.getFileName().toString().split("_")[1].replace(".json.gz", ""));
+                        long t2 = Long.parseLong(p2.getFileName().toString().split("_")[1].replace(".json.gz", ""));
                         return Long.compare(t1, t2);
                     })
                     .orElse(null);
 
             if (latestCommitFile != null) {
-                String commitJson = Files.readString(latestCommitFile);
-                Commit commit = deserializeCommitJson(commitJson);
+                byte[] commitJson = Files.readAllBytes(latestCommitFile);
+                String decompressedJson = new String(gzipDecompress(commitJson));
+                Commit commit = deserializeCommitJson(decompressedJson);
                 revertCommit(commit);
                 Files.delete(latestCommitFile);
                 GitGudPlugin.LOGGER.atInfo().log("Reverted and deleted latest commit file: " + latestCommitFile.getFileName());
@@ -138,11 +143,13 @@ public class Repository {
             return;
         }
 
-        Path stashFile = STASH_PATH.resolve("stash_" + System.currentTimeMillis() + ".json");
+        Path stashFile = STASH_PATH.resolve("stash_" + System.currentTimeMillis() + ".json.gz");
 
         try {
             String stashJson = serializeCommitJson(new Commit("Stash", getBlockChanges(), System.currentTimeMillis()));
-            Files.write(stashFile, stashJson.getBytes());
+            byte[] compressedData = gzipCompress(stashJson.getBytes());
+            Files.write(stashFile, compressedData);
+            blockChanges.clear();
         } catch (IOException e) {
             GitGudPlugin.LOGGER.atWarning().log("Failed to stash block changes: " + e.getMessage());
         }
@@ -156,15 +163,15 @@ public class Repository {
             Path latestStashFile = Files.list(STASH_PATH)
                     .filter(path -> path.getFileName().toString().startsWith("stash_"))
                     .max((p1, p2) -> {
-                        long t1 = Long.parseLong(p1.getFileName().toString().split("_")[1].replace(".json", ""));
-                        long t2 = Long.parseLong(p2.getFileName().toString().split("_")[1].replace(".json", ""));
+                        long t1 = Long.parseLong(p1.getFileName().toString().split("_")[1].replace(".json.gz", ""));
+                        long t2 = Long.parseLong(p2.getFileName().toString().split("_")[1].replace(".json.gz", ""));
                         return Long.compare(t1, t2);
                     })
                     .orElse(null);
 
             if (latestStashFile != null) {
-                String stashJson = Files.readString(latestStashFile);
-                Commit stashCommit = deserializeCommitJson(stashJson);
+                byte[] stashJson = Files.readAllBytes(latestStashFile);
+                Commit stashCommit = deserializeCommitJson(new String(gzipDecompress(stashJson)));
                 for (BlockChange change : stashCommit.blockChanges) {
                     addBlockChange(change);
                 }
@@ -199,6 +206,26 @@ public class Repository {
     public static Commit deserializeCommitJson(String json) {
         Gson gson = new Gson();
         return gson.fromJson(json, Commit.class);
+    }
+
+    public static byte[] gzipCompress(byte[] data) {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        try (GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream)) {
+            gzipOutputStream.write(data);
+            gzipOutputStream.finish();
+        } catch (IOException e) {
+            GitGudPlugin.LOGGER.atWarning().log("Failed to compress data: " + e.getMessage());
+        }
+        return byteArrayOutputStream.toByteArray();
+    }
+
+    public static byte[] gzipDecompress(byte[] compressedData) {
+        try (GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(compressedData))) {
+            return gzipInputStream.readAllBytes();
+        } catch (IOException e) {
+            GitGudPlugin.LOGGER.atWarning().log("Failed to decompress data: " + e.getMessage());
+            return new byte[0];
+        }
     }
 
     // TODO: add methods to list commits, get commit by name, etc.
