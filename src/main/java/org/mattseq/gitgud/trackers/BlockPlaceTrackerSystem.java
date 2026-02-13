@@ -23,7 +23,7 @@ public class BlockPlaceTrackerSystem extends EntityEventSystem<EntityStore, Plac
     @Override
     public void handle(int i, @Nonnull ArchetypeChunk<EntityStore> archetypeChunk, @Nonnull Store<EntityStore> store, @Nonnull CommandBuffer<EntityStore> commandBuffer, @Nonnull PlaceBlockEvent placeBlockEvent) {
         assert placeBlockEvent.getItemInHand() != null;
-        Repository.addBlockChange(new BlockChange(placeBlockEvent.getTargetBlock(), "Empty", placeBlockEvent.getItemInHand().getItem().getBlockId()));
+        Repository.addBlockChange(new BlockChange(placeBlockEvent.getTargetBlock(), "Empty", placeBlockEvent.getItemInHand().getItem().getBlockId()), true);
         GitGudPlugin.LOGGER.atInfo().log("Block placed at " + placeBlockEvent.getTargetBlock() + " with ID " + placeBlockEvent.getItemInHand().getItemId());
     }
 

@@ -18,7 +18,6 @@ import java.util.zip.GZIPOutputStream;
 public class Repository {
     private static final Path REPO_PATH = Path.of(".gitgud");
     private static final Path COMMITS_PATH = REPO_PATH.resolve("commits");
-    // TODO: automatic stashing to prevent memory overload
     private static final Path STASH_PATH = REPO_PATH.resolve("stash");
 
     private static final ArrayList<BlockChange> blockChanges = new ArrayList<>();
@@ -29,10 +28,12 @@ public class Repository {
         }
     }
 
-    public static void addBlockChange(BlockChange change) {
+    public static void addBlockChange(BlockChange change, boolean stashIfNeeded) {
         blockChanges.add(change);
-        GitGudPlugin.LOGGER.atInfo().log("Block change added at " + change.position + " with new ID " + change.newBlockId);
-        GitGudPlugin.LOGGER.atInfo().log("Total unsaved changes: " + getBlockChanges().size());
+        if (stashIfNeeded && blockChanges.size() > 32) {
+            GitGudPlugin.LOGGER.atWarning().log("Block change count exceeded 32, stashing changes.");
+            stashBlockChanges();
+        }
     }
 
     public static void initialize() {
@@ -67,7 +68,10 @@ public class Repository {
     public static void saveCommit(String message) {
         long timestamp = System.currentTimeMillis();
 
+        // TODO: consider using hashes and storing parent commits, also for stash files; would need HEAD pointers as well
         Path commitFile = COMMITS_PATH.resolve("commit_" + timestamp + ".json.gz");
+
+        unstashBlockChanges();
 
         ArrayList<BlockChange> changesToSave = getBlockChanges();
         if (changesToSave.isEmpty()) {
@@ -101,6 +105,7 @@ public class Repository {
     }
 
     public static void revertLatestCommit() {
+        // TODO: rollback current changes first
         try {
             Path latestCommitFile = Files.list(COMMITS_PATH)
                     .filter(path -> path.getFileName().toString().startsWith("commit_"))
@@ -160,31 +165,24 @@ public class Repository {
     public static void unstashBlockChanges() {
 
         try {
-            Path latestStashFile = Files.list(STASH_PATH)
-                    .filter(path -> path.getFileName().toString().startsWith("stash_"))
-                    .max((p1, p2) -> {
-                        long t1 = Long.parseLong(p1.getFileName().toString().split("_")[1].replace(".json.gz", ""));
-                        long t2 = Long.parseLong(p2.getFileName().toString().split("_")[1].replace(".json.gz", ""));
-                        return Long.compare(t1, t2);
-                    })
-                    .orElse(null);
+            List<Path> stashFiles = Files.list(STASH_PATH).toList();
+            for (Path file: stashFiles) {
+                GitGudPlugin.LOGGER.atInfo().log("Found stash file: " + file.getFileName());
 
-            if (latestStashFile != null) {
-                byte[] stashJson = Files.readAllBytes(latestStashFile);
+                byte[] stashJson = Files.readAllBytes(file);
                 Commit stashCommit = deserializeCommitJson(new String(gzipDecompress(stashJson)));
                 for (BlockChange change : stashCommit.blockChanges) {
-                    addBlockChange(change);
+                    addBlockChange(change, false);
                 }
-                Files.delete(latestStashFile);
-                GitGudPlugin.LOGGER.atInfo().log("Unstashed block changes from file: " + latestStashFile.getFileName());
-            } else {
-                GitGudPlugin.LOGGER.atInfo().log("No stashed changes found to restore.");
+                Files.delete(file);
+                GitGudPlugin.LOGGER.atInfo().log("Unstashed block changes from file: " + file.getFileName());
             }
+
+            GitGudPlugin.LOGGER.atInfo().log("Stashed block changes have been restored.");
+
         } catch (IOException e) {
             GitGudPlugin.LOGGER.atWarning().log("Failed to unstash block changes: " + e.getMessage());
         }
-
-        GitGudPlugin.LOGGER.atInfo().log("Stashed block changes have been restored.");
     }
 
     public static long getCommitCount() {

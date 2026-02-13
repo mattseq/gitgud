@@ -16,6 +16,6 @@ public class StatusCommand extends CommandBase {
     protected void executeSync(@Nonnull CommandContext commandContext) {
         commandContext.sendMessage(Message.raw("Current Repository Status:"));
         commandContext.sendMessage(Message.raw(Repository.getCommitCount() + " commits in repository."));
-        commandContext.sendMessage(Message.raw("Changes since last commit: " + Repository.getBlockChanges().size()));
+        commandContext.sendMessage(Message.raw("Changes since last stash: " + Repository.getBlockChanges().size()));
     }
 }

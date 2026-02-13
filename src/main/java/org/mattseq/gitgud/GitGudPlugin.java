@@ -26,7 +26,6 @@ public class GitGudPlugin extends JavaPlugin {
     protected void setup() {
         LOGGER.atInfo().log("Setting up plugin " + this.getName());
         Repository.initialize();
-        Repository.unstashBlockChanges();
         this.getEntityStoreRegistry().registerSystem(new BlockBreakTrackerSystem());
         this.getEntityStoreRegistry().registerSystem(new BlockPlaceTrackerSystem());
         this.getCommandRegistry().registerCommand(new GitCommand());

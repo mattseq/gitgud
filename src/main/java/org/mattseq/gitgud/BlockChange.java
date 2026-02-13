@@ -7,6 +7,7 @@ public class BlockChange {
     public String oldBlockId;
     public String newBlockId;
     public final long timestamp;
+    // TODO: consider adding author info and block orientation (for relevant blocks, e.g. stairs)
 
     public BlockChange(Vector3i position, String oldBlockId, String newBlockId) {
         this.position = position;
