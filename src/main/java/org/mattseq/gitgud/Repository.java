@@ -19,7 +19,9 @@ public class Repository {
     private static final Path REPO_PATH = Path.of(".gitgud");
     private static final Path COMMITS_PATH = REPO_PATH.resolve("commits");
     private static final Path STASH_PATH = REPO_PATH.resolve("stash");
+    private static final Path HEAD_PATH = REPO_PATH.resolve("HEAD");
 
+    // TODO: consider using a more efficient data structure like a TreeSet
     private static final ArrayList<BlockChange> blockChanges = new ArrayList<>();
 
     public static ArrayList<BlockChange> getBlockChanges() {
@@ -63,13 +65,22 @@ public class Repository {
                 GitGudPlugin.LOGGER.atWarning().log("Failed to create stash directory: " + e.getMessage());
             }
         }
+
+        if (!Files.exists(HEAD_PATH)) {
+            try {
+                Files.createFile(HEAD_PATH);
+                Files.writeString(HEAD_PATH, "0");
+                GitGudPlugin.LOGGER.atInfo().log("Created HEAD file at " + HEAD_PATH.toAbsolutePath());
+            } catch (IOException e) {
+                GitGudPlugin.LOGGER.atWarning().log("Failed to create HEAD file: " + e.getMessage());
+            }
+        }
     }
 
     public static void saveCommit(String message) {
         long timestamp = System.currentTimeMillis();
 
-        // TODO: consider using hashes and storing parent commits, also for stash files; would need HEAD pointers as well
-        Path commitFile = COMMITS_PATH.resolve("commit_" + timestamp + ".json.gz");
+        Path commitFile = COMMITS_PATH.resolve(timestamp + ".json.gz");
 
         unstashBlockChanges();
 
@@ -80,11 +91,14 @@ public class Repository {
         }
 
         try {
+            // sort block changes by timestamp
             changesToSave.sort(Comparator.comparingLong(a -> a.timestamp));
 
-            String commitJson = serializeCommitJson(new Commit(message, changesToSave, timestamp));
+            // save commit
+            String commitJson = serializeJson(new Commit(message, changesToSave, timestamp, getLastCommitTimestamp()));
             byte[] compressedData = gzipCompress(commitJson.getBytes());
             Files.write(commitFile, compressedData);
+            setHead(timestamp);
         } catch (IOException e) {
             GitGudPlugin.LOGGER.atWarning().log("Failed to save commit: " + e.getMessage());
         }
@@ -94,46 +108,40 @@ public class Repository {
     }
 
     public static void revertCommit(Commit commit) {
-        // reorder block changes to revert in reverse order of timestamp
-        commit.blockChanges.sort((a, b) -> Long.compare(b.timestamp, a.timestamp));
 
         for (BlockChange change : commit.blockChanges) {
             Universe.get().getDefaultWorld().setBlock(change.position.x, change.position.y, change.position.z, change.oldBlockId);
             GitGudPlugin.LOGGER.atInfo().log("Reverting block at " + change.position + " to " + change.oldBlockId);
         }
-        GitGudPlugin.LOGGER.atInfo().log("Reverted commit with message: " + commit.message);
+
+        try {
+            Files.delete(COMMITS_PATH.resolve(commit.timestamp + ".json.gz"));
+            GitGudPlugin.LOGGER.atInfo().log("Reverted and deleted latest commit with timestamp: " + commit.timestamp);
+            setHead(commit.parentCommit);
+        } catch (IOException e) {
+            GitGudPlugin.LOGGER.atWarning().log("Failed to delete latest commit file: " + e.getMessage());
+        }
     }
 
     public static void revertLatestCommit() {
         // rollback any uncommitted changes first
         rollback();
 
-        try {
-            Path latestCommitFile = Files.list(COMMITS_PATH)
-                    .filter(path -> path.getFileName().toString().startsWith("commit_"))
-                    .max((p1, p2) -> {
-                        long t1 = Long.parseLong(p1.getFileName().toString().split("_")[1].replace(".json.gz", ""));
-                        long t2 = Long.parseLong(p2.getFileName().toString().split("_")[1].replace(".json.gz", ""));
-                        return Long.compare(t1, t2);
-                    })
-                    .orElse(null);
+        long lastCommitTimestamp = getLastCommitTimestamp();
 
-            if (latestCommitFile != null) {
-                byte[] commitJson = Files.readAllBytes(latestCommitFile);
-                String decompressedJson = new String(gzipDecompress(commitJson));
-                Commit commit = deserializeCommitJson(decompressedJson);
-                revertCommit(commit);
-                Files.delete(latestCommitFile);
-                GitGudPlugin.LOGGER.atInfo().log("Reverted and deleted latest commit file: " + latestCommitFile.getFileName());
-            } else {
-                GitGudPlugin.LOGGER.atInfo().log("No commits found to revert.");
-            }
-        } catch (IOException e) {
-            GitGudPlugin.LOGGER.atWarning().log("Failed to revert recent commit: " + e.getMessage());
+        Commit lastCommit = getCommitByTimestamp(lastCommitTimestamp);
+
+        if (lastCommit != null) {
+            revertCommit(lastCommit);
+        } else {
+            GitGudPlugin.LOGGER.atInfo().log("No commits found to revert.");
         }
     }
 
     public static void rollback() {
+        // first, unstash any uncommitted changes to ensure it is included in the rollback
+        unstashBlockChanges();
+
         List<BlockChange> changesToRollback = getBlockChanges().reversed();
         for (BlockChange change : changesToRollback) {
             Universe.get().getDefaultWorld().setBlock(change.position.x, change.position.y, change.position.z, change.oldBlockId);
@@ -150,10 +158,12 @@ public class Repository {
             return;
         }
 
-        Path stashFile = STASH_PATH.resolve("stash_" + System.currentTimeMillis() + ".json.gz");
+        long timestamp = System.currentTimeMillis();
+
+        Path stashFile = STASH_PATH.resolve(timestamp + ".json.gz");
 
         try {
-            String stashJson = serializeCommitJson(new Commit("Stash", getBlockChanges(), System.currentTimeMillis()));
+            String stashJson = serializeJson(new Stash(getBlockChanges(), timestamp));
             byte[] compressedData = gzipCompress(stashJson.getBytes());
             Files.write(stashFile, compressedData);
             blockChanges.clear();
@@ -172,7 +182,7 @@ public class Repository {
                 GitGudPlugin.LOGGER.atInfo().log("Found stash file: " + file.getFileName());
 
                 byte[] stashJson = Files.readAllBytes(file);
-                Commit stashCommit = deserializeCommitJson(new String(gzipDecompress(stashJson)));
+                Stash stashCommit = deserializeJson(new String(gzipDecompress(stashJson)), Stash.class);
                 for (BlockChange change : stashCommit.blockChanges) {
                     addBlockChange(change, false);
                 }
@@ -180,10 +190,49 @@ public class Repository {
                 GitGudPlugin.LOGGER.atInfo().log("Unstashed block changes from file: " + file.getFileName());
             }
 
+            // sort block changes by timestamp after unstashing
+            blockChanges.sort(Comparator.comparingLong(a -> a.timestamp));
+
             GitGudPlugin.LOGGER.atInfo().log("Stashed block changes have been restored.");
 
         } catch (IOException e) {
             GitGudPlugin.LOGGER.atWarning().log("Failed to unstash block changes: " + e.getMessage());
+        }
+    }
+
+    public static void setHead(long timestamp) {
+        try {
+            Files.writeString(HEAD_PATH, String.valueOf(timestamp));
+            GitGudPlugin.LOGGER.atInfo().log("HEAD updated to timestamp: " + timestamp);
+        } catch (IOException e) {
+            GitGudPlugin.LOGGER.atWarning().log("Failed to update HEAD: " + e.getMessage());
+        }
+    }
+
+    public static long getLastCommitTimestamp() {
+        try {
+            String headContent = Files.readString(HEAD_PATH).trim();
+            return headContent.isEmpty() ? 0 : Long.parseLong(headContent);
+        } catch (IOException | NumberFormatException e) {
+            GitGudPlugin.LOGGER.atWarning().log("Failed to read HEAD: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    public static Commit getCommitByTimestamp(long timestamp) {
+        Path commitFile = COMMITS_PATH.resolve(timestamp + ".json.gz");
+        if (Files.exists(commitFile)) {
+            try {
+                byte[] commitJson = Files.readAllBytes(commitFile);
+                String decompressedJson = new String(gzipDecompress(commitJson));
+                return deserializeJson(decompressedJson, Commit.class);
+            } catch (IOException e) {
+                GitGudPlugin.LOGGER.atWarning().log("Failed to read commit file: " + e.getMessage());
+                return null;
+            }
+        } else {
+            GitGudPlugin.LOGGER.atInfo().log("No commit found with timestamp: " + timestamp);
+            return null;
         }
     }
 
@@ -198,14 +247,14 @@ public class Repository {
         }
     }
 
-    public static String serializeCommitJson(Commit commit) {
+    public static String serializeJson(Object obj) {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        return gson.toJson(commit);
+        return gson.toJson(obj);
     }
 
-    public static Commit deserializeCommitJson(String json) {
+    public static <T> T deserializeJson(String json, Class<T> clazz) {
         Gson gson = new Gson();
-        return gson.fromJson(json, Commit.class);
+        return gson.fromJson(json, clazz);
     }
 
     public static byte[] gzipCompress(byte[] data) {
