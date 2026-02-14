@@ -105,7 +105,9 @@ public class Repository {
     }
 
     public static void revertLatestCommit() {
-        // TODO: rollback current changes first
+        // rollback any uncommitted changes first
+        rollback();
+
         try {
             Path latestCommitFile = Files.list(COMMITS_PATH)
                     .filter(path -> path.getFileName().toString().startsWith("commit_"))
