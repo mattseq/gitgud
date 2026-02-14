@@ -6,14 +6,14 @@ A simple server plugin that tracks block placements and breaks, lets builders sa
 
 - Track block changes (place / break) and store them as commits in `./gitgud/commits`.
 - Save a commit with a message, revert the latest commit to restore previous blocks.
-- Automatically stash and unstash uncommitted changes to preserve changes after server restarts.
+- Automatically stash and unstash uncommitted changes to preserve changes after server restarts and save memory.
 - Rollback unsaved changes.
-- Lightweight JSON storage for commits
+- Lightweight, compressed JSON storage for commits
 
 ## Installation
 
 1. Download the JAR and place it in the `Mods` directory of your Hytale server.
-2. Start the server. The plugin will create a `./gitgud` folder in the server working directory with `commits` and `stash` subfolders.
+2. Start the server. The plugin will create a `./gitgud` folder in the server working directory with `commits` and `stash` subfolders, as well as a `HEAD` file.
 
 ## Quick usage
 
@@ -25,18 +25,18 @@ A simple server plugin that tracks block placements and breaks, lets builders sa
 
 Below are example in-game commands and how to use them.
 
-- `/git status`
+- `/gitgud status`
     - Show whether there are uncommitted block changes, and whether a stash exists.
 
-- `/git commit "<message>"`
+- `/gitgud commit "<message>"`
   - Create a new commit from the current uncommitted block changes.
   - Example: `/git commit "cathedral roof"`
 
-- `/git revert`
+- `/gitgud revert`
   - Revert the previous commit, restoring blocks to their previous state.
   - Recommended to run `/git rollback` first to clear uncommitted changes.
 
-- `/git rollback`
+- `/gitgud rollback`
   - Roll back the current uncommitted changes in memory (rollback to last committed state).
 
 Notes:
@@ -47,7 +47,7 @@ Notes:
 
 - Commits are stored as readable JSON in `./gitgud`; compression and advanced history tools are TODO.
 - Not all elements are tracked (e.g., fluids, entities); focus is on block placements and breaks for now.
-- Future improvements may include better diffing, multi-world support, a GUI interface, and memory and storage optimizations.
+- Future improvements may include diffing, staging, multi-world support, a GUI interface, and memory and storage optimizations.
 
 ## Troubleshooting
 
