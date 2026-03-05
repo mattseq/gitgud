@@ -238,9 +238,7 @@ public class Repository {
 
     public static long getCommitCount() {
         try {
-            return Files.list(COMMITS_PATH)
-                    .filter(path -> path.getFileName().toString().startsWith("commit_"))
-                    .count();
+            return Files.list(COMMITS_PATH).count();
         } catch (IOException e) {
             GitGudPlugin.LOGGER.atWarning().log("Failed to count commits: " + e.getMessage());
             return 0;
