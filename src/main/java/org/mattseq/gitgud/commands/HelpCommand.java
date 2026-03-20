@@ -16,6 +16,7 @@ public class HelpCommand extends CommandBase {
         commandContext.sendMessage(Message.raw("/gitgud rollback - Rolls back the world to the last commit"));
         commandContext.sendMessage(Message.raw("/gitgud commit - Commits the current changes to the repository"));
         commandContext.sendMessage(Message.raw("/gitgud revert - Reverts the world to the previous commit"));
+        commandContext.sendMessage(Message.raw("/gitgud tag - Tags the current commit with a specified name and an optional description"));
         commandContext.sendMessage(Message.raw("/gitgud help - Displays this help information"));
     }
 }

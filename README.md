@@ -26,11 +26,18 @@ A simple server plugin that tracks block placements and breaks, lets builders sa
 Below are example in-game commands and how to use them.
 
 - `/gitgud status`
-    - Show whether there are uncommitted block changes, and whether a stash exists.
+  - Show the current status of the repository, including number of commits and uncommitted changes.
+
+- `/gitgud log`
+  - Show a list of commits with their messages and IDs.
+
+- `/gitgud stash`
+  - Stash the current uncommitted block changes to disk, clearing them from memory. You shouldn't have to use this manually since changes are stashed automatically.
+  - Example: `/git stash`
 
 - `/gitgud commit "<message>"`
   - Create a new commit from the current uncommitted block changes.
-  - Example: `/git commit "cathedral roof"`
+  - Example: `/git commit "initial commit"`
 
 - `/gitgud revert`
   - Revert the previous commit, restoring blocks to their previous state.
@@ -38,6 +45,10 @@ Below are example in-game commands and how to use them.
 
 - `/gitgud rollback`
   - Roll back the current uncommitted changes in memory (rollback to last committed state).
+
+- `/gitgud tag <tag> --desc="<description>"`
+  - Tag the latest commit with a custom tag for easier reference.
+  - Example: `/git tag v1.0.0 --desc="first complete version"`
 
 Notes:
 - If a command is missing or named differently in your build, check `/git help` or the plugin documentation bundled with the JAR.

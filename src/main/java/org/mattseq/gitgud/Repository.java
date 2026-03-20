@@ -21,6 +21,7 @@ public class Repository {
     private static final Path COMMITS_PATH = REPO_PATH.resolve("commits");
     private static final Path STASH_PATH = REPO_PATH.resolve("stash");
     private static final Path HEAD_PATH = REPO_PATH.resolve("HEAD");
+    private static final Path TAGS_PATH = REPO_PATH.resolve("tags");
 
     // TODO: consider using a more efficient data structure like a TreeSet
     private static final ArrayList<BlockChange> blockChanges = new ArrayList<>();
@@ -74,6 +75,15 @@ public class Repository {
                 GitGudPlugin.LOGGER.atInfo().log("Created HEAD file at " + HEAD_PATH.toAbsolutePath());
             } catch (IOException e) {
                 GitGudPlugin.LOGGER.atWarning().log("Failed to create HEAD file: " + e.getMessage());
+            }
+        }
+
+        if (!Files.exists(TAGS_PATH)) {
+            try {
+                Files.createDirectory(TAGS_PATH);
+                GitGudPlugin.LOGGER.atInfo().log("Created tags directory at " + TAGS_PATH.toAbsolutePath());
+            } catch (IOException e) {
+                GitGudPlugin.LOGGER.atWarning().log("Failed to create tags directory: " + e.getMessage());
             }
         }
     }
@@ -201,13 +211,57 @@ public class Repository {
         }
     }
 
-    public static void setHead(long timestamp) {
-        try {
-            Files.writeString(HEAD_PATH, String.valueOf(timestamp));
-            GitGudPlugin.LOGGER.atInfo().log("HEAD updated to timestamp: " + timestamp);
-        } catch (IOException e) {
-            GitGudPlugin.LOGGER.atWarning().log("Failed to update HEAD: " + e.getMessage());
+    public static void addTagToLatestCommit(String tagName, String description) {
+        long lastCommitTimestamp = getLastCommitTimestamp();
+        if (lastCommitTimestamp == 0) {
+            GitGudPlugin.LOGGER.atInfo().log("No commits found to tag.");
+            return;
         }
+        addTag(tagName, description, lastCommitTimestamp);
+    }
+
+    public static void addTag(String tagName, String description, long commitTimestamp) {
+        Path tagFile = TAGS_PATH.resolve(tagName);
+        try {
+            Tag tag = new Tag(tagName, description, commitTimestamp);
+            String tagJson = serializeJson(tag);
+            Files.writeString(tagFile, tagJson);
+            GitGudPlugin.LOGGER.atInfo().log("Tag '" + tagName + "' added for commit timestamp: " + commitTimestamp);
+        } catch (IOException e) {
+            GitGudPlugin.LOGGER.atWarning().log("Failed to add tag: " + e.getMessage());
+        }
+    }
+
+    public static Tag getTag(String tagName) {
+        Path tagFile = TAGS_PATH.resolve(tagName);
+        if (Files.exists(tagFile)) {
+            try {
+                String tagJson = Files.readString(tagFile);
+                return deserializeJson(tagJson, Tag.class);
+            } catch (IOException e) {
+                GitGudPlugin.LOGGER.atWarning().log("Failed to read tag file: " + e.getMessage());
+                return null;
+            }
+        } else {
+            GitGudPlugin.LOGGER.atInfo().log("No tag found with name: " + tagName);
+            return null;
+        }
+    }
+
+    public static List<Tag> listTags() {
+        List<Tag> tags = new ArrayList<>();
+        try {
+            List<Path> tagFiles = Files.list(TAGS_PATH).toList();
+            for (Path tagFile : tagFiles) {
+                String tagJson = Files.readString(tagFile);
+                Tag tag = deserializeJson(tagJson, Tag.class);
+                tags.add(tag);
+            }
+            GitGudPlugin.LOGGER.atInfo().log("Listed " + tags.size() + " tags.");
+        } catch (IOException e) {
+            GitGudPlugin.LOGGER.atWarning().log("Failed to list tags: " + e.getMessage());
+        }
+        return tags;
     }
 
     public static long getLastCommitTimestamp() {
