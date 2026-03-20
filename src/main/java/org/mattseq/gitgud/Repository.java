@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+// TODO: add commit checkout
 public class Repository {
     private static final Path REPO_PATH = Path.of(".gitgud");
     private static final Path COMMITS_PATH = REPO_PATH.resolve("commits");
@@ -236,13 +237,51 @@ public class Repository {
         }
     }
 
-    public static long getCommitCount() {
+    public static List<Commit> getCommitHistory(int limit) {
+        ArrayList<Commit> history = new ArrayList<>();
+        if (limit <= 0) {
+            GitGudPlugin.LOGGER.atInfo().log("Invalid commit history limit: " + limit);
+            return history;
+        }
+
+        long lastCommitTimestamp = getLastCommitTimestamp();
+        while (history.size() < limit && lastCommitTimestamp > 0) {
+            Commit commit = getCommitByTimestamp(lastCommitTimestamp);
+            if (commit != null) {
+                history.add(commit);
+                lastCommitTimestamp = commit.parentCommit;
+            } else {
+                break;
+            }
+        }
+        GitGudPlugin.LOGGER.atInfo().log("Retrieved commit history with " + history.size() + " commits");
+        return history;
+    }
+
+    public static List<Commit> getCommitHistory() {
+        return getCommitHistory(Integer.MAX_VALUE);
+    }
+
+    public static void setHead(long timestamp) {
         try {
-            return Files.list(COMMITS_PATH).count();
+            Files.writeString(HEAD_PATH, String.valueOf(timestamp));
+            GitGudPlugin.LOGGER.atInfo().log("HEAD updated to timestamp: " + timestamp);
         } catch (IOException e) {
-            GitGudPlugin.LOGGER.atWarning().log("Failed to count commits: " + e.getMessage());
+            GitGudPlugin.LOGGER.atWarning().log("Failed to update HEAD: " + e.getMessage());
+        }
+    }
+
+    public static long getStashCount() {
+        try {
+            return Files.list(STASH_PATH).count();
+        } catch (IOException e) {
+            GitGudPlugin.LOGGER.atWarning().log("Failed to count stash files: " + e.getMessage());
             return 0;
         }
+    }
+
+    public static long getCommitCount() {
+        return getCommitHistory().size();
     }
 
     public static String serializeJson(Object obj) {

@@ -12,6 +12,7 @@ public class HelpCommand extends CommandBase {
     protected void executeSync(@javax.annotation.Nonnull com.hypixel.hytale.server.core.command.system.CommandContext commandContext) {
         commandContext.sendMessage(Message.raw("Git Command Help:"));
         commandContext.sendMessage(Message.raw("/gitgud status - Shows the current status of the repository"));
+        commandContext.sendMessage(Message.raw("/gitgud log - Shows the commit history of the repository"));
         commandContext.sendMessage(Message.raw("/gitgud rollback - Rolls back the world to the last commit"));
         commandContext.sendMessage(Message.raw("/gitgud commit - Commits the current changes to the repository"));
         commandContext.sendMessage(Message.raw("/gitgud revert - Reverts the world to the previous commit"));

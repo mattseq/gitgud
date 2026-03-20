@@ -13,7 +13,7 @@ public class CommitCommand extends CommandBase {
     private final RequiredArg<String> messageArg;
     public CommitCommand() {
         super("commit", "Commits changes to the repository");
-        this.messageArg = this.withRequiredArg("message", "The commit message",ArgTypes.STRING);
+        this.messageArg = this.withRequiredArg("message", "The commit message", ArgTypes.STRING);
     }
 
     @Override

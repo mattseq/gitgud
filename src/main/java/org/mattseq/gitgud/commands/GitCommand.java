@@ -8,7 +8,7 @@ import javax.annotation.Nonnull;
 
 public class GitCommand extends CommandBase {
     public GitCommand() {
-        super("gitgud", "Displays information for git commands");
+        super("gitgud", "Main command for gitgud plugin");
         this.addSubCommand(new CommitCommand());
         this.addSubCommand(new RollbackCommand());
         this.addSubCommand(new RevertCommand());
@@ -16,6 +16,8 @@ public class GitCommand extends CommandBase {
         this.addSubCommand(new HelpCommand());
         this.addSubCommand(new StashCommand());
         GitGudPlugin.LOGGER.atInfo().log("Registered gitgud command with subcommands: commit, rollback, revert, status, help, stash");
+        this.addSubCommand(new LogCommand());
+        GitGudPlugin.LOGGER.atInfo().log("Registered gitgud command");
     }
 
     @Override
