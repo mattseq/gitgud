@@ -8,7 +8,7 @@ import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.EntityEventSystem;
 import com.hypixel.hytale.server.core.event.events.ecs.PlaceBlockEvent;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
-import org.mattseq.gitgud.BlockChange;
+import org.mattseq.gitgud.dto.BlockChange;
 import org.mattseq.gitgud.GitGudPlugin;
 import org.mattseq.gitgud.Repository;
 

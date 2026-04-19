@@ -1,4 +1,4 @@
-package org.mattseq.gitgud;
+package org.mattseq.gitgud.dto;
 
 import com.hypixel.hytale.math.vector.Vector3i;
 

@@ -3,6 +3,10 @@ package org.mattseq.gitgud;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hypixel.hytale.server.core.universe.Universe;
+import org.mattseq.gitgud.dto.BlockChange;
+import org.mattseq.gitgud.dto.Commit;
+import org.mattseq.gitgud.dto.Stash;
+import org.mattseq.gitgud.dto.Tag;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

@@ -1,4 +1,4 @@
-package org.mattseq.gitgud;
+package org.mattseq.gitgud.dto;
 
 public class Tag {
     String name;
