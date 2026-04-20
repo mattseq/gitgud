@@ -6,6 +6,7 @@ import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import org.mattseq.gitgud.commands.*;
 import org.mattseq.gitgud.trackers.BlockBreakTrackerSystem;
 import org.mattseq.gitgud.trackers.BlockPlaceTrackerSystem;
+import org.mattseq.gitgud.trackers.WorldEditApplySystem;
 
 import javax.annotation.Nonnull;
 
@@ -28,6 +29,7 @@ public class GitGudPlugin extends JavaPlugin {
         Repository.initialize();
         this.getEntityStoreRegistry().registerSystem(new BlockBreakTrackerSystem());
         this.getEntityStoreRegistry().registerSystem(new BlockPlaceTrackerSystem());
+        this.getEntityStoreRegistry().registerSystem(new WorldEditApplySystem());
         this.getCommandRegistry().registerCommand(new GitCommand());
     }
 

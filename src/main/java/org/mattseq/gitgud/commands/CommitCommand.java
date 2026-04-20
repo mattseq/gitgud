@@ -18,8 +18,7 @@ public class CommitCommand extends CommandBase {
 
     @Override
     protected void executeSync(@Nonnull CommandContext commandContext) {
-        Repository.saveCommit(this.messageArg.get(commandContext));
-        // TODO: confirm that changes were committed successfully before sending messages
-        commandContext.sendMessage(Message.raw("Changes committed with message: " + this.messageArg.get(commandContext)));
+        Repository.ActionResult result = Repository.saveCommit(this.messageArg.get(commandContext));
+        commandContext.sendMessage(Message.raw(result.message));
     }
 }

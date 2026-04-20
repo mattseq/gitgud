@@ -14,7 +14,7 @@ public class RevertCommand extends CommandBase {
 
     @Override
     protected void executeSync(@Nonnull CommandContext commandContext) {
-        Repository.revertLatestCommit();
-        commandContext.sendMessage(Message.raw("Reverted to the previous commit."));
+        Repository.ActionResult result = Repository.revertLatestCommit();
+        commandContext.sendMessage(Message.raw(result.message));
     }
 }

@@ -2,33 +2,50 @@ package org.mattseq.gitgud;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.hypixel.hytale.server.core.universe.Universe;
 import org.mattseq.gitgud.dto.BlockChange;
 import org.mattseq.gitgud.dto.Commit;
 import org.mattseq.gitgud.dto.Stash;
 import org.mattseq.gitgud.dto.Tag;
+import org.mattseq.gitgud.trackers.WorldEditApplySystem;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-// TODO: add commit checkout
 public class Repository {
     private static final Path REPO_PATH = Path.of(".gitgud");
     private static final Path COMMITS_PATH = REPO_PATH.resolve("commits");
     private static final Path STASH_PATH = REPO_PATH.resolve("stash");
     private static final Path HEAD_PATH = REPO_PATH.resolve("HEAD");
+    private static final Path CURRENT_PATH = REPO_PATH.resolve("CURRENT");
     private static final Path TAGS_PATH = REPO_PATH.resolve("tags");
 
     // TODO: consider using a more efficient data structure like a TreeSet
     private static final ArrayList<BlockChange> blockChanges = new ArrayList<>();
+
+    // TODO: fully use ActionResult for all command methods
+    public static final class ActionResult {
+        public final boolean success;
+        public final String message;
+
+        private ActionResult(boolean success, String message) {
+            this.success = success;
+            this.message = message;
+        }
+
+        public static ActionResult success(String message) {
+            return new ActionResult(true, message);
+        }
+
+        public static ActionResult failure(String message) {
+            return new ActionResult(false, message);
+        }
+    }
 
     public static ArrayList<BlockChange> getBlockChanges() {
         synchronized (blockChanges) {
@@ -38,7 +55,7 @@ public class Repository {
 
     public static void addBlockChange(BlockChange change, boolean stashIfNeeded) {
         blockChanges.add(change);
-        if (stashIfNeeded && blockChanges.size() > 32) {
+        if (stashIfNeeded && getHeadTimestamp() == getCurrentTimestamp() && blockChanges.size() > 32) {
             GitGudPlugin.LOGGER.atWarning().log("Block change count exceeded 32, stashing changes.");
             stashBlockChanges();
         }
@@ -82,6 +99,16 @@ public class Repository {
             }
         }
 
+        if (!Files.exists(CURRENT_PATH)) {
+            try {
+                Files.createFile(CURRENT_PATH);
+                Files.writeString(CURRENT_PATH, String.valueOf(getHeadTimestamp()));
+                GitGudPlugin.LOGGER.atInfo().log("Created CURRENT file at " + CURRENT_PATH.toAbsolutePath());
+            } catch (IOException e) {
+                GitGudPlugin.LOGGER.atWarning().log("Failed to create CURRENT file: " + e.getMessage());
+            }
+        }
+
         if (!Files.exists(TAGS_PATH)) {
             try {
                 Files.createDirectory(TAGS_PATH);
@@ -92,7 +119,13 @@ public class Repository {
         }
     }
 
-    public static void saveCommit(String message) {
+    public static ActionResult saveCommit(String message) {
+        if (isDetached()) {
+            String failureMessage = "Cannot commit while detached. Checkout HEAD first so HEAD == CURRENT.";
+            GitGudPlugin.LOGGER.atWarning().log(failureMessage);
+            return ActionResult.failure(failureMessage);
+        }
+
         long timestamp = System.currentTimeMillis();
 
         Path commitFile = COMMITS_PATH.resolve(timestamp + ".json.gz");
@@ -101,8 +134,9 @@ public class Repository {
 
         ArrayList<BlockChange> changesToSave = getBlockChanges();
         if (changesToSave.isEmpty()) {
-            GitGudPlugin.LOGGER.atInfo().log("No changes to commit.");
-            return;
+            String noChangesMessage = "No changes to commit.";
+            GitGudPlugin.LOGGER.atInfo().log(noChangesMessage);
+            return ActionResult.failure(noChangesMessage);
         }
 
         try {
@@ -114,43 +148,127 @@ public class Repository {
             byte[] compressedData = gzipCompress(commitJson.getBytes());
             Files.write(commitFile, compressedData);
             setHead(timestamp);
+            setCurrent(timestamp);
         } catch (IOException e) {
             GitGudPlugin.LOGGER.atWarning().log("Failed to save commit: " + e.getMessage());
+            return ActionResult.failure("Failed to save commit. Check logs for details.");
         }
 
         blockChanges.removeAll(changesToSave);
-        GitGudPlugin.LOGGER.atInfo().log("Commit saved with message: " + message);
+        String successMessage = "Commit saved with message: " + message;
+        GitGudPlugin.LOGGER.atInfo().log(successMessage);
+        return ActionResult.success(successMessage);
     }
 
     public static void revertCommit(Commit commit) {
-
-        for (BlockChange change : commit.blockChanges) {
-            Universe.get().getDefaultWorld().setBlock(change.position.x, change.position.y, change.position.z, change.oldBlockId);
-            GitGudPlugin.LOGGER.atInfo().log("Reverting block at " + change.position + " to " + change.oldBlockId);
+        if (commit == null) {
+            GitGudPlugin.LOGGER.atInfo().log("No commit found to revert.");
+            return;
         }
 
-        try {
-            Files.delete(COMMITS_PATH.resolve(commit.timestamp + ".json.gz"));
-            GitGudPlugin.LOGGER.atInfo().log("Reverted and deleted latest commit with timestamp: " + commit.timestamp);
-            setHead(commit.parentCommit);
-        } catch (IOException e) {
-            GitGudPlugin.LOGGER.atWarning().log("Failed to delete latest commit file: " + e.getMessage());
-        }
+        applyCommitBackward(commit);
+
+        setCurrent(commit.parentCommit);
+        GitGudPlugin.LOGGER.atInfo().log("Reverted commit " + commit.timestamp + " without deleting commit file.");
     }
 
-    public static void revertLatestCommit() {
+    public static void applyCommit(Commit commit) {
+        if (commit == null) {
+            GitGudPlugin.LOGGER.atInfo().log("No commit found to apply.");
+            return;
+        }
+
+        applyCommitForward(commit);
+
+        setCurrent(commit.timestamp);
+        GitGudPlugin.LOGGER.atInfo().log("Applied commit " + commit.timestamp + ".");
+    }
+
+    public static ActionResult revertLatestCommit() {
+        if (isDetached()) {
+            String failureMessage = "Cannot revert while detached. Checkout HEAD first so HEAD == CURRENT.";
+            GitGudPlugin.LOGGER.atWarning().log(failureMessage);
+            return ActionResult.failure(failureMessage);
+        }
+
         // rollback any uncommitted changes first
         rollback();
 
-        long lastCommitTimestamp = getLastCommitTimestamp();
+        long lastCommitTimestamp = getCurrentTimestamp();
 
         Commit lastCommit = getCommitByTimestamp(lastCommitTimestamp);
 
         if (lastCommit != null) {
             revertCommit(lastCommit);
+            // delete commit file after reverting
+            Path commitFile = COMMITS_PATH.resolve(lastCommit.timestamp + ".json.gz");
+            setHead(lastCommit.parentCommit);
+            try {
+                Files.deleteIfExists(commitFile);
+                GitGudPlugin.LOGGER.atInfo().log("Deleted commit file for timestamp: " + lastCommit.timestamp);
+            } catch (IOException e) {
+                GitGudPlugin.LOGGER.atWarning().log("Failed to delete commit file: " + e.getMessage());
+            }
+            return ActionResult.success("Reverted commit " + lastCommit.timestamp + ".");
         } else {
-            GitGudPlugin.LOGGER.atInfo().log("No commits found to revert.");
+            String noCommitMessage = "No commits found to revert.";
+            GitGudPlugin.LOGGER.atInfo().log(noCommitMessage);
+            return ActionResult.failure(noCommitMessage);
         }
+    }
+
+    // TODO: support checking out by tag name and HEAD or TAIL
+    public static boolean checkoutCommit(int targetIndex) {
+        Map<Long, Commit> commitHistory = getCommitHistoryMap();
+        if (targetIndex < 0 || targetIndex >= commitHistory.size()) {
+            GitGudPlugin.LOGGER.atInfo().log("Invalid commit index: " + targetIndex);
+            return false;
+        }
+        long targetTimestamp = new ArrayList<>(commitHistory.keySet()).get(targetIndex);
+        return checkoutCommit(targetTimestamp);
+    }
+
+    public static boolean checkoutCommit(long targetTimestamp) {
+        return checkoutCommit(getCommitByTimestamp(targetTimestamp));
+    }
+
+    public static boolean checkoutCommit(Commit targetCommit) {
+        if (targetCommit == null) {
+            GitGudPlugin.LOGGER.atInfo().log("Target commit not found.");
+            return false;
+        }
+
+        stashBlockChanges();
+
+        Map<Long, Commit> commitHistory = getCommitHistoryMap();
+        long currentTimestamp = getCurrentTimestamp();
+
+        if (currentTimestamp == targetCommit.timestamp) {
+            GitGudPlugin.LOGGER.atInfo().log("Already on commit " + targetCommit.timestamp + ".");
+            return true;
+        }
+
+        int currentIndex = getCommitIndex(commitHistory, currentTimestamp);
+        int targetIndex = getCommitIndex(commitHistory, targetCommit.timestamp);
+
+        if (currentIndex == -1 || targetIndex == -1) {
+            GitGudPlugin.LOGGER.atWarning().log("Cannot checkout. CURRENT or target is not in HEAD commit chain.");
+            return false;
+        }
+
+        List<Commit> chain = new ArrayList<>(commitHistory.values());
+
+        if (currentIndex < targetIndex) {
+            for (int i = currentIndex; i < targetIndex; i++) {
+                revertCommit(chain.get(i));
+            }
+        } else {
+            for (int i = currentIndex -1; i >= targetIndex; i--) {
+                applyCommit(chain.get(i));
+            }
+        }
+
+        return getCurrentTimestamp() == targetCommit.timestamp;
     }
 
     public static void rollback() {
@@ -159,7 +277,8 @@ public class Repository {
 
         List<BlockChange> changesToRollback = getBlockChanges().reversed();
         for (BlockChange change : changesToRollback) {
-            Universe.get().getDefaultWorld().setBlock(change.position.x, change.position.y, change.position.z, change.oldBlockId);
+            WorldEditApplySystem.enqueue(change.position.x, change.position.y, change.position.z, change.oldBlockId);
+//            Universe.get().getDefaultWorld().setBlock(change.position.x, change.position.y, change.position.z, change.oldBlockId);
             GitGudPlugin.LOGGER.atInfo().log("Reverting block at " + change.position + " to " + change.oldBlockId);
         }
         blockChanges.removeAll(changesToRollback);
@@ -215,6 +334,7 @@ public class Repository {
         }
     }
 
+    // TODO: improve tags commands to support listing tags, tagging specific commits, deleting tags, etc.
     public static void addTagToLatestCommit(String tagName, String description) {
         long lastCommitTimestamp = getLastCommitTimestamp();
         if (lastCommitTimestamp == 0) {
@@ -269,11 +389,25 @@ public class Repository {
     }
 
     public static long getLastCommitTimestamp() {
+        return getHeadTimestamp();
+    }
+
+    public static long getHeadTimestamp() {
         try {
             String headContent = Files.readString(HEAD_PATH).trim();
             return headContent.isEmpty() ? 0 : Long.parseLong(headContent);
         } catch (IOException | NumberFormatException e) {
             GitGudPlugin.LOGGER.atWarning().log("Failed to read HEAD: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    public static long getCurrentTimestamp() {
+        try {
+            String currentContent = Files.readString(CURRENT_PATH).trim();
+            return currentContent.isEmpty() ? 0 : Long.parseLong(currentContent);
+        } catch (IOException | NumberFormatException e) {
+            GitGudPlugin.LOGGER.atWarning().log("Failed to read CURRENT: " + e.getMessage());
             return 0;
         }
     }
@@ -316,6 +450,14 @@ public class Repository {
         return history;
     }
 
+    public static Map<Long, Commit> getCommitHistoryMap() {
+        LinkedHashMap<Long, Commit> history = new LinkedHashMap<>();
+        for (Commit commit : getCommitHistory()) {
+            history.put(commit.timestamp, commit);
+        }
+        return history;
+    }
+
     public static List<Commit> getCommitHistory() {
         return getCommitHistory(Integer.MAX_VALUE);
     }
@@ -326,6 +468,47 @@ public class Repository {
             GitGudPlugin.LOGGER.atInfo().log("HEAD updated to timestamp: " + timestamp);
         } catch (IOException e) {
             GitGudPlugin.LOGGER.atWarning().log("Failed to update HEAD: " + e.getMessage());
+        }
+    }
+
+    public static void setCurrent(long timestamp) {
+        try {
+            Files.writeString(CURRENT_PATH, String.valueOf(timestamp));
+            GitGudPlugin.LOGGER.atInfo().log("CURRENT updated to timestamp: " + timestamp);
+        } catch (IOException e) {
+            GitGudPlugin.LOGGER.atWarning().log("Failed to update CURRENT: " + e.getMessage());
+        }
+    }
+
+    private static boolean isDetached() {
+        return getHeadTimestamp() != getCurrentTimestamp();
+    }
+
+    private static int getCommitIndex(Map<Long, Commit> chain, long timestamp) {
+        int index = 0;
+        for (Long commitTimestamp : chain.keySet()) {
+            if (commitTimestamp == timestamp) {
+                return index;
+            }
+            index++;
+        }
+        return -1;
+    }
+
+    private static void applyCommitBackward(Commit commit) {
+        List<BlockChange> changes = commit.blockChanges.reversed();
+        for (BlockChange change : changes) {
+            WorldEditApplySystem.enqueue(change.position.x, change.position.y, change.position.z, change.oldBlockId);
+//            Objects.requireNonNull(Universe.get().getDefaultWorld()).setBlock(change.position.x, change.position.y, change.position.z, change.oldBlockId);
+            GitGudPlugin.LOGGER.atInfo().log("Reverting block at " + change.position + " to " + change.oldBlockId);
+        }
+    }
+
+    private static void applyCommitForward(Commit commit) {
+        for (BlockChange change : commit.blockChanges) {
+            WorldEditApplySystem.enqueue(change.position.x, change.position.y, change.position.z, change.newBlockId);
+//            Universe.get().getDefaultWorld().setBlock(change.position.x, change.position.y, change.position.z, change.newBlockId);
+            GitGudPlugin.LOGGER.atInfo().log("Applying block at " + change.position + " to " + change.newBlockId);
         }
     }
 
@@ -371,6 +554,4 @@ public class Repository {
             return new byte[0];
         }
     }
-
-    // TODO: add methods to list commits, get commit by name, etc.
 }

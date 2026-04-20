@@ -17,6 +17,7 @@ public class GitCommand extends CommandBase {
         this.addSubCommand(new StashCommand());
         this.addSubCommand(new LogCommand());
         this.addSubCommand(new TagCommand());
+        this.addSubCommand(new CheckoutCommand());
         GitGudPlugin.LOGGER.atInfo().log("Registered gitgud command");
     }
 
