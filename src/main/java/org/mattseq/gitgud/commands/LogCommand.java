@@ -14,8 +14,13 @@ public class LogCommand extends CommandBase {
     @Override
     protected void executeSync(@NonNullDecl CommandContext commandContext) {
         commandContext.sendMessage(Message.raw("Commit History:"));
+        long currentTimestamp = Repository.getCurrentTimestamp();
         Repository.getCommitHistory().forEach(commit -> {
-            commandContext.sendMessage(Message.raw("- " + commit.timestamp + ": " + commit.message));
+            if (commit.timestamp == currentTimestamp) {
+                commandContext.sendMessage(Message.raw("- " + commit.timestamp + ": " + commit.message + " <--"));
+            } else {
+                commandContext.sendMessage(Message.raw("- " + commit.timestamp + ": " + commit.message));
+            }
         });
     }
 }

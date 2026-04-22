@@ -55,7 +55,7 @@ public class Repository {
 
     public static void addBlockChange(BlockChange change, boolean stashIfNeeded) {
         blockChanges.add(change);
-        if (stashIfNeeded && getHeadTimestamp() == getCurrentTimestamp() && blockChanges.size() > 32) {
+        if (stashIfNeeded && blockChanges.size() > 32) {
             GitGudPlugin.LOGGER.atWarning().log("Block change count exceeded 32, stashing changes.");
             stashBlockChanges();
         }
@@ -238,7 +238,7 @@ public class Repository {
             return false;
         }
 
-        stashBlockChanges();
+        rollback();
 
         Map<Long, Commit> commitHistory = getCommitHistoryMap();
         long currentTimestamp = getCurrentTimestamp();
@@ -278,7 +278,6 @@ public class Repository {
         List<BlockChange> changesToRollback = getBlockChanges().reversed();
         for (BlockChange change : changesToRollback) {
             WorldEditApplySystem.enqueue(change.position.x, change.position.y, change.position.z, change.oldBlockId);
-//            Universe.get().getDefaultWorld().setBlock(change.position.x, change.position.y, change.position.z, change.oldBlockId);
             GitGudPlugin.LOGGER.atInfo().log("Reverting block at " + change.position + " to " + change.oldBlockId);
         }
         blockChanges.removeAll(changesToRollback);
@@ -499,7 +498,6 @@ public class Repository {
         List<BlockChange> changes = commit.blockChanges.reversed();
         for (BlockChange change : changes) {
             WorldEditApplySystem.enqueue(change.position.x, change.position.y, change.position.z, change.oldBlockId);
-//            Objects.requireNonNull(Universe.get().getDefaultWorld()).setBlock(change.position.x, change.position.y, change.position.z, change.oldBlockId);
             GitGudPlugin.LOGGER.atInfo().log("Reverting block at " + change.position + " to " + change.oldBlockId);
         }
     }
@@ -507,7 +505,6 @@ public class Repository {
     private static void applyCommitForward(Commit commit) {
         for (BlockChange change : commit.blockChanges) {
             WorldEditApplySystem.enqueue(change.position.x, change.position.y, change.position.z, change.newBlockId);
-//            Universe.get().getDefaultWorld().setBlock(change.position.x, change.position.y, change.position.z, change.newBlockId);
             GitGudPlugin.LOGGER.atInfo().log("Applying block at " + change.position + " to " + change.newBlockId);
         }
     }

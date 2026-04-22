@@ -1,6 +1,8 @@
-# GitGud — Lightweight in-game world versioning for Hytale
+# GitGud
 
-A simple server plugin that tracks block placements and breaks, lets builders save changes as local commits, and easily revert or stash changes. Designed for small teams and creative servers to recover mistakes without external tools.
+Lightweight in-game world versioning for Hytale.
+
+GitGud tracks block place/break events, stores them as local commits, and lets you roll back, revert, and inspect history with in-game commands.
 
 ## Features
 
@@ -12,63 +14,94 @@ A simple server plugin that tracks block placements and breaks, lets builders sa
 
 ## Installation
 
-1. Download the JAR and place it in the `Mods` directory of your Hytale server.
-2. Start the server. The plugin will create a `./gitgud` folder in the server working directory with `commits` and `stash` subfolders, as well as a `HEAD` file.
+1. Build the mod JAR.
+2. Place the JAR in your server's mod path.
+3. Start the server.
 
-## Quick usage
+On first startup, GitGud creates a repository folder in the server working directory:
 
-1. Make block changes in the world (place/break blocks).
-2. Run the commit command with a message to save changes as a JSON commit.
-3. Revert the latest commit to restore previous blocks.
+## Quick start
+
+1. Make block changes in-game.
+2. Run `/gitgud commit "your message"`.
+3. Use `/gitgud log` or `/gitgud status` to inspect state.
+4. Use `/gitgud rollback` for uncommitted changes, or `/gitgud revert` for the latest committed change.
 
 ## Commands
 
-Below are example in-game commands and how to use them.
+All commands are subcommands of `/gitgud`.
 
-- `/gitgud status`
-  - Show the current status of the repository, including number of commits and uncommitted changes.
+```text
+/gitgud help
+  Show command help text.
 
-- `/gitgud log`
-  - Show a list of commits with their messages and IDs.
+/gitgud status
+  Shows:
+  - commit count in the HEAD chain
+  - in-memory unstashed change count ("Changes since last stash")
+  - stash file count
 
-- `/gitgud stash`
-  - Stash the current uncommitted block changes to disk, clearing them from memory. You shouldn't have to use this manually since changes are stashed automatically.
-  - Example: `/git stash`
+/gitgud log
+  Prints commit history from HEAD backward.
+  The CURRENT commit is marked with "<--".
 
-- `/gitgud commit "<message>"`
-  - Create a new commit from the current uncommitted block changes.
-  - Example: `/git commit "initial commit"`
+/gitgud commit "<message>"
+  Creates a commit from recent block changes with the given message.
+  Fails if there are no changes.
+  Fails in detached mode (when the head commit is not checked out).
 
-- `/gitgud revert`
-  - Revert the previous commit, restoring blocks to their previous state.
-  - Recommended to run `/git rollback` first to clear uncommitted changes.
+/gitgud rollback
+  Reverts uncommitted block changes only.
 
-- `/gitgud rollback`
-  - Roll back the current uncommitted changes in memory (rollback to last committed state).
+/gitgud revert
+  Reverts the latest commit (from CURRENT), then deletes that commit file.
+  Also rolls back uncommitted changes first.
+  Fails in detached mode (when HEAD != CURRENT).
 
-- `/gitgud tag <tag> --desc="<description>"`
-  - Tag the latest commit with a custom tag for easier reference.
-  - Example: `/git tag v1.0.0 --desc="first complete version"`
+/gitgud stash
+  Manually stash in-memory block changes to `.gitgud/stash`.
+  Mostly useful for testing (auto-stash already exists).
 
-Notes:
-- If a command is missing or named differently in your build, check `/git help` or the plugin documentation bundled with the JAR.
-- Permissions: only server operators can use these commands by default.
+/gitgud tag "<name>" --desc "<description>"
+  Tags the latest commit (HEAD).
+  Current implementation only creates tags; no delete/list command yet.
 
-## Compatibility and Improvements
+/gitgud checkout <index>
+  Checks out by commit index, not by timestamp.
+  Index is zero-based in HEAD-chain order:
+  - 0 = HEAD (newest)
+  - 1 = parent of HEAD
+  - etc.
+  Checkout moves CURRENT and applies/reverts commits as needed.
+```
 
-- Commits are stored as readable JSON in `./gitgud`; compression and advanced history tools are TODO.
-- Not all elements are tracked (e.g., fluids, entities); focus is on block placements and breaks for now.
-- Future improvements may include diffing, staging, multi-world support, a GUI interface, and memory and storage optimizations.
+## Repository model (HEAD vs CURRENT)
+
+- `HEAD`: tip of the main commit chain
+- `CURRENT`: commit currently applied in world state
+
+When `HEAD != CURRENT`, the repository is detached.
+
+Detached mode rules in current implementation:
+
+- `commit` is blocked
+- `revert` is blocked
+- `checkout` is allowed
+- `rollback` is allowed (works on uncommitted changes)
+
+## Stash behavior
+
+- In-memory block changes auto-stash when count exceeds 32
+- Stash data is stored as gzip-compressed JSON files in `.gitgud/stash`
+- Commit and rollback operations unstash first to ensure a complete operation
+- Plugin shutdown stashes remaining in-memory changes
 
 ## Troubleshooting
 
+- Ensure that the user has OP permissions to run GitGud commands.
 - If the plugin does not create the `./gitgud` folder, ensure the server process has write permission to its working directory.
 - If block changes are not being recorded, check server logs for plugin initialization messages and ensure the plugin is loaded.
 
 ## Contributing
 
-Contributions and bug reports are welcome. Please open issues and pull requests on the project repository.
-
----
-
-Lightweight recovery for accidental edits and iterative building — easy to use, easy to restore.
+Issues and PRs are welcome.
