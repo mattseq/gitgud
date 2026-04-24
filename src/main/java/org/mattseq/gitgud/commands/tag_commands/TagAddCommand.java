@@ -1,5 +1,6 @@
 package org.mattseq.gitgud.commands.tag_commands;
 
+import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.DefaultArg;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
@@ -21,6 +22,7 @@ public class TagAddCommand extends CommandBase {
 
     @Override
     protected void executeSync(@NonNullDecl CommandContext commandContext) {
-        Repository.addTagToLatestCommit(this.nameArg.get(commandContext), this.descriptionArg.get(commandContext));
+        Repository.ActionResult result = Repository.addTagToLatestCommit(this.nameArg.get(commandContext), this.descriptionArg.get(commandContext));
+        commandContext.sendMessage(Message.raw(result.message));
     }
 }

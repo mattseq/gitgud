@@ -15,7 +15,7 @@ public class RollbackCommand extends CommandBase {
 
     @Override
     protected void executeSync(@Nonnull CommandContext commandContext) {
-        Repository.rollback();
-        commandContext.sendMessage(Message.raw("Rolled back to the last commit."));
+        Repository.ActionResult result = Repository.rollback();
+        commandContext.sendMessage(Message.raw(result.message));
     }
 }

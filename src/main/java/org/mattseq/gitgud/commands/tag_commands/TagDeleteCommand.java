@@ -1,5 +1,6 @@
 package org.mattseq.gitgud.commands.tag_commands;
 
+import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
@@ -18,6 +19,7 @@ public class TagDeleteCommand extends CommandBase {
 
     @Override
     protected void executeSync(@NonNullDecl CommandContext commandContext) {
-        Repository.deleteTag(this.tagArg.get(commandContext));
+        Repository.ActionResult result = Repository.deleteTag(this.tagArg.get(commandContext));
+        commandContext.sendMessage(Message.raw(result.message));
     }
 }

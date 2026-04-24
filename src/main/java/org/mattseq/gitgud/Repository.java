@@ -28,7 +28,6 @@ public class Repository {
     // TODO: consider using a more efficient data structure like a TreeSet
     private static final ArrayList<BlockChange> blockChanges = new ArrayList<>();
 
-    // TODO: fully use ActionResult for all command methods
     public static final class ActionResult {
         public final boolean success;
         public final String message;
@@ -267,7 +266,7 @@ public class Repository {
         return ActionResult.success("Checked out commit " + targetCommit.timestamp + ".");
     }
 
-    public static void rollback() {
+    public static ActionResult rollback() {
         // first, unstash any uncommitted changes to ensure it is included in the rollback
         unstashBlockChanges();
 
@@ -277,7 +276,7 @@ public class Repository {
             GitGudPlugin.LOGGER.atInfo().log("Reverting block at " + change.position + " to " + change.oldBlockId);
         }
         blockChanges.removeAll(changesToRollback);
-        GitGudPlugin.LOGGER.atInfo().log("Rollback completed for " + changesToRollback.size() + " changes.");
+        return ActionResult.success("Rolled back " + changesToRollback.size() + " uncommitted block changes.");
     }
 
     public static void stashBlockChanges() {
@@ -329,39 +328,37 @@ public class Repository {
         }
     }
 
-    // TODO: improve tags commands to support listing tags, tagging specific commits, deleting tags, etc.
-    public static void addTagToLatestCommit(String tagName, String description) {
+    public static ActionResult addTagToLatestCommit(String tagName, String description) {
         long lastCommitTimestamp = getLastCommitTimestamp();
         if (lastCommitTimestamp == 0) {
             GitGudPlugin.LOGGER.atInfo().log("No commits found to tag.");
-            return;
+            return ActionResult.failure("No commits found to tag.");
         }
-        addTag(tagName, description, lastCommitTimestamp);
+        return addTag(tagName, description, lastCommitTimestamp);
     }
 
-    public static void addTag(String tagName, String description, long commitTimestamp) {
+    public static ActionResult addTag(String tagName, String description, long commitTimestamp) {
         Path tagFile = TAGS_PATH.resolve(tagName);
         try {
             Tag tag = new Tag(tagName, description, commitTimestamp);
             String tagJson = serializeJson(tag);
             Files.writeString(tagFile, tagJson);
-            GitGudPlugin.LOGGER.atInfo().log("Tag '" + tagName + "' added for commit timestamp: " + commitTimestamp);
+            return ActionResult.success("Tag '" + tagName + "' added to commit " + commitTimestamp + ".");
         } catch (IOException e) {
-            GitGudPlugin.LOGGER.atWarning().log("Failed to add tag: " + e.getMessage());
+            return ActionResult.failure("Failed to add tag: " + e.getMessage());
         }
     }
 
-    public static void deleteTag(String tagName) {
+    public static ActionResult deleteTag(String tagName) {
         Path tagFile = TAGS_PATH.resolve(tagName);
         if (!Files.exists(tagFile)) {
-            GitGudPlugin.LOGGER.atInfo().log("No tag found with name: " + tagName);
-            return;
+            return ActionResult.failure("No tag found with name: " + tagName);
         }
         try {
             Files.delete(tagFile);
-            GitGudPlugin.LOGGER.atInfo().log("Tag '" + tagName + "' deleted.");
+            return ActionResult.success("Tag '" + tagName + "' deleted successfully.");
         } catch (IOException e) {
-            GitGudPlugin.LOGGER.atWarning().log("Failed to delete tag: " + e.getMessage());
+            return ActionResult.failure("Failed to delete tag: " + e.getMessage());
         }
     }
 
