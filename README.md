@@ -62,7 +62,7 @@ All commands are subcommands of `/gitgud`.
   Manually stash in-memory block changes to `.gitgud/stash`.
   Mostly useful for testing (auto-stash already exists).
 
-/gitgud tag "<name>" --desc "<description>"
+/gitgud tag <name> --desc "<description>"
   Tags the latest commit (HEAD).
   Current implementation only creates tags; no delete/list command yet.
 

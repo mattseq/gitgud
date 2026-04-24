@@ -218,24 +218,20 @@ public class Repository {
     }
 
     // TODO: support checking out by tag name and HEAD or TAIL
-    public static boolean checkoutCommit(int targetIndex) {
+    public static ActionResult checkoutCommit(int targetIndex) {
         Map<Long, Commit> commitHistory = getCommitHistoryMap();
         if (targetIndex < 0 || targetIndex >= commitHistory.size()) {
             GitGudPlugin.LOGGER.atInfo().log("Invalid commit index: " + targetIndex);
-            return false;
+            return ActionResult.failure("Invalid commit index: " + targetIndex);
         }
         long targetTimestamp = new ArrayList<>(commitHistory.keySet()).get(targetIndex);
-        return checkoutCommit(targetTimestamp);
-    }
-
-    public static boolean checkoutCommit(long targetTimestamp) {
         return checkoutCommit(getCommitByTimestamp(targetTimestamp));
     }
 
-    public static boolean checkoutCommit(Commit targetCommit) {
+    public static ActionResult checkoutCommit(Commit targetCommit) {
         if (targetCommit == null) {
             GitGudPlugin.LOGGER.atInfo().log("Target commit not found.");
-            return false;
+            return ActionResult.failure("Target commit not found.");
         }
 
         rollback();
@@ -245,7 +241,7 @@ public class Repository {
 
         if (currentTimestamp == targetCommit.timestamp) {
             GitGudPlugin.LOGGER.atInfo().log("Already on commit " + targetCommit.timestamp + ".");
-            return true;
+            return ActionResult.failure("Already on target commit.");
         }
 
         int currentIndex = getCommitIndex(commitHistory, currentTimestamp);
@@ -253,7 +249,7 @@ public class Repository {
 
         if (currentIndex == -1 || targetIndex == -1) {
             GitGudPlugin.LOGGER.atWarning().log("Cannot checkout. CURRENT or target is not in HEAD commit chain.");
-            return false;
+            return ActionResult.failure("Cannot checkout. CURRENT or target is not in commit chain.");
         }
 
         List<Commit> chain = new ArrayList<>(commitHistory.values());
@@ -268,7 +264,7 @@ public class Repository {
             }
         }
 
-        return getCurrentTimestamp() == targetCommit.timestamp;
+        return ActionResult.success("Checked out commit " + targetCommit.timestamp + ".");
     }
 
     public static void rollback() {
@@ -352,6 +348,20 @@ public class Repository {
             GitGudPlugin.LOGGER.atInfo().log("Tag '" + tagName + "' added for commit timestamp: " + commitTimestamp);
         } catch (IOException e) {
             GitGudPlugin.LOGGER.atWarning().log("Failed to add tag: " + e.getMessage());
+        }
+    }
+
+    public static void deleteTag(String tagName) {
+        Path tagFile = TAGS_PATH.resolve(tagName);
+        if (!Files.exists(tagFile)) {
+            GitGudPlugin.LOGGER.atInfo().log("No tag found with name: " + tagName);
+            return;
+        }
+        try {
+            Files.delete(tagFile);
+            GitGudPlugin.LOGGER.atInfo().log("Tag '" + tagName + "' deleted.");
+        } catch (IOException e) {
+            GitGudPlugin.LOGGER.atWarning().log("Failed to delete tag: " + e.getMessage());
         }
     }
 
