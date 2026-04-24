@@ -13,8 +13,9 @@ public class TagListCommand extends CommandBase {
 
     @Override
     protected void executeSync(@NonNullDecl CommandContext commandContext) {
-            Repository.listTags().forEach(tag -> {
-                commandContext.sendMessage(Message.raw(tag.name + " (" + tag.commitId + "): " + tag.description));
-            });
+        commandContext.sendMessage(Message.raw("Tags:"));
+        Repository.listTags().forEach(tag -> {
+            commandContext.sendMessage(Message.raw("- " + tag.name + " (" + tag.commitId + "): " + tag.description));
+        });
     }
 }

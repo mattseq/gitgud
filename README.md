@@ -37,7 +37,7 @@ All commands are subcommands of `/gitgud`.
 
 /gitgud status
   Shows:
-  - commit count in the HEAD chain
+  - commit count
   - in-memory unstashed change count ("Changes since last stash")
   - stash file count
 
@@ -48,7 +48,7 @@ All commands are subcommands of `/gitgud`.
 /gitgud commit "<message>"
   Creates a commit from recent block changes with the given message.
   Fails if there are no changes.
-  Fails in detached mode (when the head commit is not checked out).
+  Fails in detached mode (when HEAD != CURRENT).
 
 /gitgud rollback
   Reverts uncommitted block changes only.
@@ -62,17 +62,24 @@ All commands are subcommands of `/gitgud`.
   Manually stash in-memory block changes to `.gitgud/stash`.
   Mostly useful for testing (auto-stash already exists).
 
-/gitgud tag <name> --desc "<description>"
-  Tags the latest commit (HEAD).
-  Current implementation only creates tags; no delete/list command yet.
+/gitgud tag add <name> [--desc "<description>"]
+  Adds a tag to the latest commit (HEAD).
+  Description is optional and defaults to "No description provided".
 
-/gitgud checkout <index>
-  Checks out by commit index, not by timestamp.
+/gitgud tag list
+  Lists all tags in the repository.
+
+/gitgud tag del <name>
+  Deletes a tag from the repository.
+
+/gitgud checkout <index|HEAD|TAIL> [--tag]
+  Checks out by commit index, HEAD, TAIL, or a tag with --tag.
   Index is zero-based in HEAD-chain order:
   - 0 = HEAD (newest)
   - 1 = parent of HEAD
   - etc.
   Checkout moves CURRENT and applies/reverts commits as needed.
+  Use `--tag` when the argument is a tag name instead of an index.
 ```
 
 ## Repository model (HEAD vs CURRENT)
