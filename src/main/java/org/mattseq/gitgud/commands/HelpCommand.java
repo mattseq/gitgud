@@ -17,8 +17,10 @@ public class HelpCommand extends CommandBase {
         commandContext.sendMessage(Message.raw("/gitgud rollback - Revert uncommitted changes only"));
         commandContext.sendMessage(Message.raw("/gitgud revert - Revert and delete the latest commit"));
         commandContext.sendMessage(Message.raw("/gitgud stash - Manually stash in-memory block changes"));
-        commandContext.sendMessage(Message.raw("/gitgud tag <name> [--desc <description>] - Tag the latest commit"));
-        commandContext.sendMessage(Message.raw("/gitgud checkout <index> - Checkout commit by index (0 = HEAD)"));
+        commandContext.sendMessage(Message.raw("/gitgud tag add <name> [--desc <description>] - Add a tag to HEAD"));
+        commandContext.sendMessage(Message.raw("/gitgud tag del <name> - Delete a tag"));
+        commandContext.sendMessage(Message.raw("/gitgud tag list - List all tags"));
+        commandContext.sendMessage(Message.raw("/gitgud checkout <index|HEAD|TAIL> [--tag] - Checkout by index, pointer, or tag"));
         commandContext.sendMessage(Message.raw("/gitgud help - Show this help information"));
     }
 }
