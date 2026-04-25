@@ -1,14 +1,14 @@
 {
     "Group": "mattseq",
     "Name": "gitgud",
-    "Version": "2.0.0",
+    "Version": "2.1.0",
     "Description": "A Git mod for Hytale",
     "Authors": [
         {
             "Name": "mattseq"
         }
     ],
-    "Website": "github.com/mattseq",
+    "Website": "github.com/mattseq/gitgud",
     "ServerVersion": "*",
     "Dependencies": {
         
@@ -18,5 +18,5 @@
     },
     "DisabledByDefault": false,
     "Main": "org.mattseq.gitgud.GitGudPlugin",
-    "IncludesAssetPack": true
+    "IncludesAssetPack": false
 }
