@@ -216,7 +216,6 @@ public class Repository {
         }
     }
 
-    // TODO: support checking out by tag name and HEAD or TAIL
     public static ActionResult checkoutCommit(int targetIndex) {
         Map<Long, Commit> commitHistory = getCommitHistoryMap();
         if (targetIndex < 0 || targetIndex >= commitHistory.size()) {
