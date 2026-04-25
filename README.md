@@ -2,15 +2,17 @@
 
 Lightweight in-game world versioning for Hytale.
 
-GitGud tracks block place/break events, stores them as local commits, and lets you roll back, revert, and inspect history with in-game commands.
+GitGud tracks block place/break events, stores them as commits, and lets you roll back, revert, and inspect history with in-game commands.
 
 ## Features
 
-- Track block changes (place / break) and store them as commits in `./gitgud/commits`.
-- Save a commit with a message, revert the latest commit to restore previous blocks.
+- Track block changes (place / break).
+- Commit and revert changes with messages.
 - Automatically stash and unstash uncommitted changes to preserve changes after server restarts and save memory.
 - Rollback unsaved changes.
-- Lightweight, compressed JSON storage for commits
+- Tags for marking important commits.
+- Checkout by commit index, pointer (HEAD or TAIL), or by tag name.
+- Status and log commands to inspect repository state and history.
 
 ## Installation
 
